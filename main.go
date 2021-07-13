@@ -4,19 +4,22 @@ package main
 
 import (
 	"encoding/json"
+	"math/rand"
 	"net/http"
 	"regexp"
+	"strconv"
 	"sync"
 )
 
 var (
 	listFortuneRe   = regexp.MustCompile(`^/fortunes[/]*$`)
 	getFortuneRe    = regexp.MustCompile(`^/fortunes[/](\d+)$`)
+	randomFortuneRe = regexp.MustCompile(`^/fortunes[/]random$`)
 	createFortuneRe = regexp.MustCompile(`^/fortunes[/]*$`)
 )
 
 type fortune struct {
-	ID   string `json:"id"`
+	ID      string `json:"id"`
 	Message string `json:"message"`
 }
 
@@ -38,6 +41,9 @@ func (h *fortuneHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodGet && getFortuneRe.MatchString(r.URL.Path):
 		h.Get(w, r)
 		return
+	case r.Method == http.MethodGet && randomFortuneRe.MatchString(r.URL.Path):
+		h.Random(w, r)
+		return
 	case r.Method == http.MethodPost && createFortuneRe.MatchString(r.URL.Path):
 		h.Create(w, r)
 		return
@@ -55,6 +61,24 @@ func (h *fortuneHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	h.store.RUnlock()
 	jsonBytes, err := json.Marshal(fortunes)
+	if err != nil {
+		internalServerError(w, r)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
+}
+
+func (h *fortuneHandler) Random(w http.ResponseWriter, r *http.Request) {
+	h.store.RLock()
+	u, ok := h.store.m[strconv.Itoa(rand.Intn(len(h.store.m))+1)]
+	h.store.RUnlock()
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("fortune not found"))
+		return
+	}
+	jsonBytes, err := json.Marshal(u)
 	if err != nil {
 		internalServerError(w, r)
 		return
