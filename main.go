@@ -82,14 +82,8 @@ func (h *fortuneHandler) Random(w http.ResponseWriter, r *http.Request) {
 	}
 	h.store.RUnlock()
 
-	ok := true
 	u := fortunes[rand.Intn(len(fortunes))]
 
-	if !ok {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("fortune not found"))
-		return
-	}
 	jsonBytes, err := json.Marshal(u)
 	if err != nil {
 		internalServerError(w, r)
