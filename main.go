@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
-	"strconv"
 	"sync"
 )
 
@@ -77,8 +76,14 @@ func (h *fortuneHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *fortuneHandler) Random(w http.ResponseWriter, r *http.Request) {
 	h.store.RLock()
-	u, ok := h.store.m[strconv.Itoa(rand.Intn(len(h.store.m))+1)]
+	fortunes := make([]fortune, 0, len(h.store.m))
+	for _, v := range h.store.m {
+		fortunes = append(fortunes, v)
+	}
 	h.store.RUnlock()
+
+	ok := true
+	u := fortunes[rand.Intn(len(fortunes))]
 
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
@@ -107,10 +112,12 @@ func (h *fortuneHandler) Get(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("redis hget failed", err.Error())
 		} else {
-			msg := fmt.Sprintf("%s", val.([]byte))
-			h.store.Lock()
-			h.store.m[key] = fortune{ID: key, Message: msg}
-			h.store.Unlock()
+			if val != nil {
+				msg := fmt.Sprintf("%s", val.([]byte))
+				h.store.Lock()
+				h.store.m[key] = fortune{ID: key, Message: msg}
+				h.store.Unlock()
+			}
 		}
 	}
 
