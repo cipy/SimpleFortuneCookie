@@ -100,6 +100,20 @@ func (h *fortuneHandler) Get(w http.ResponseWriter, r *http.Request) {
 		notFound(w, r)
 		return
 	}
+
+	if usingRedis {
+		key := matches[1]
+		val, err := dbLink.Do("hget", "fortunes", key)
+		if err != nil {
+			fmt.Println("redis hget failed", err.Error())
+		} else {
+			msg := fmt.Sprintf("%s", val.([]byte))
+			h.store.Lock()
+			h.store.m[key] = fortune{ID: key, Message: msg}
+			h.store.Unlock()
+		}
+	}
+
 	h.store.RLock()
 	u, ok := h.store.m[matches[1]]
 	h.store.RUnlock()
