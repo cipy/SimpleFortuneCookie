@@ -83,14 +83,8 @@ func (h *fortuneHandler) Random(w http.ResponseWriter, r *http.Request) {
 	h.store.RUnlock()
 
 	u := fortunes[rand.Intn(len(fortunes))]
-
-	jsonBytes, err := json.Marshal(u)
-	if err != nil {
-		internalServerError(w, r)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonBytes)
+	r.URL.Path = "/fortunes/" + u.ID
+	h.Get(w, r)
 }
 
 func (h *fortuneHandler) Get(w http.ResponseWriter, r *http.Request) {
