@@ -82,8 +82,13 @@ func (h *fortuneHandler) Random(w http.ResponseWriter, r *http.Request) {
 	}
 	h.store.RUnlock()
 
-	u := fortunes[rand.Intn(len(fortunes))]
-	r.URL.Path = "/fortunes/" + u.ID
+	if len(fortunes) > 0 {
+		u := fortunes[rand.Intn(len(fortunes))]
+		r.URL.Path = "/fortunes/" + u.ID
+	} else {
+		r.URL.Path = "/fortunes/zero"
+	}
+
 	h.Get(w, r)
 }
 
